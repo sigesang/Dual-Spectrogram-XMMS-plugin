@@ -1,8 +1,13 @@
+1.2 -> 1.2.1
+added xmms-docklist handling (requires xmms 1.2.5+)
+crash if empty config
+
 1.1pre1 -> 1.2
 now uses a default themedirectory
 some small code tweaks
 one new skin included
 added miniicon (for taskbar etc)
+
 1.0.1 -> 1.1pre1
 added menus, movearoundhanling
 some gtkwidget cleanup

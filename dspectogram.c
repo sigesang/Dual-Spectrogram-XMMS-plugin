@@ -1,5 +1,5 @@
 /*
-  Dual Spectrogram v1.2
+  Dual Spectrogram v1.2.1
  -----------------------
   dual spectral histogram plugin for XMMS
 
@@ -18,14 +18,14 @@
 #include "bg-def.xpm"
 #include "dspectogram_mini.xpm"
 
-#define THIS_IS "Dual Spectogram 1.2"
+#define THIS_IS "Dual Spectogram 1.2.1"
 
 #define NUM_BANDS 48
 
 #define CONFIG_SECTION "Dual Spectogram"
 
 /* THEMEDIR set at maketime */
-#define THEME_DEFAULT_STR "default"
+#define THEME_DEFAULT_STR ""
 #define THEME_DEFAULT_PATH THEMEDIR
 
 /*  */
@@ -44,20 +44,9 @@
 /* exp(($i+1)/48*log(256))-1  for using the 256point data on 48points */
 static int xscl48[49]={ 0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 3, 3, 4, 4, 5, 
         6, 6, 7, 9, 10, 11, 13, 14, 16, 19, 21, 24, 27, 31, 34, 39, 
-        44, 49, 56, 62, 70, 79, 89, 100, 113, 126, 142, 160, 180, 202, 227, 254,256};
+        44, 49, 56, 62, 70, 79, 89, 100, 113, 126, 142, 160, 180, 202, 227, 254,
+	256};
 
-/* exp(($i+1)/128*log(256))-1  for using the 256point data on 128points */
-#if 0 /* not used */
-static gint16 xscl128[129]={ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
-    1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 3,
-    3, 3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 6, 6, 6, 6,
-    7, 7, 8, 8, 8, 9, 9, 10, 10, 11, 11, 12, 13, 13, 14, 14,
-    15, 16, 17, 18, 18, 19, 20, 21, 22, 23, 24, 25, 27, 28, 29, 31,
-    32, 33, 35, 37, 38, 40, 42, 44, 46, 48, 50, 52, 55, 57, 60, 62,
-    65, 68, 71, 75, 78, 81, 85, 89, 93, 97, 102, 106, 111, 116, 121, 126,
-    132, 138, 144, 151, 157, 164, 172, 180, 188, 196, 205, 214, 223, 233, 244, 254,
-    256}; /* last one to be sure*/
-#endif
 extern GtkWidget *mainwin; /* xmms mainwin */
 extern GList *dock_window_list; /* xmms dockwinlist*/
 
@@ -75,7 +64,6 @@ static GdkBitmap *mask = NULL;
 
 static GdkPixmap *bg_pixmap = NULL;
 static GdkPixmap *pixmap = NULL;
-static gboolean dspecgr_window_motion = FALSE;
 
 static GdkGC *gc = NULL;
 
@@ -93,16 +81,19 @@ typedef struct {
   gboolean rel_main;
 } DSpecgrCfg;
 
-static DSpecgrCfg Cfg={0, 0, 0, NULL, 0, 0, 0};
+static DSpecgrCfg Cfg={FALSE, FALSE, 20, NULL, -1, -1, 0};
 
-extern GList *dock_add_window(GList *window_list, GtkWidget *window);
+extern GList *dock_add_window(GList *, GtkWidget *);
+extern gboolean dock_is_moving(GtkWidget *);
+extern void dock_move_motion(GtkWidget *,GdkEventMotion *);
+extern void dock_move_press(GList *, GtkWidget *, GdkEventButton *, gboolean);
+extern void dock_move_release(GtkWidget *);
+
 
 static void dspecgr_about();
 static void dspecgr_config();
 static void dspecgr_init(void);
 static void dspecgr_cleanup(void);
-static void dspecgr_playback_start(void);
-static void dspecgr_playback_stop(void);
 static void dspecgr_render_freq(gint16 data[2][256]);
 static void dspecgr_config_read();
 static GtkWidget* dspecgr_create_menu(void);
@@ -119,8 +110,8 @@ VisPlugin dspecgr_vp = {
 	dspecgr_about,
 	dspecgr_config,
 	NULL,
-	dspecgr_playback_start,
-	dspecgr_playback_stop,
+	NULL,
+	NULL,
 	NULL, 
 	dspecgr_render_freq /* render_freq */
 };
@@ -137,9 +128,9 @@ static void dspecgr_set_theme() {
   GdkColor color;
   GdkGC *gc2 = NULL;
 
-  if((Cfg.skin_xpm != NULL) && (strcmp(Cfg.skin_xpm, THEME_DEFAULT_STR) != 0))
+  if ((Cfg.skin_xpm != NULL) && (strcmp(Cfg.skin_xpm, THEME_DEFAULT_STR) != 0))
     bg_pixmap = gdk_pixmap_create_from_xpm(window->window, &mask, NULL, Cfg.skin_xpm);
-  if(bg_pixmap == NULL)
+  if (bg_pixmap == NULL)
     bg_pixmap = gdk_pixmap_create_from_xpm_d(window->window, &mask, NULL, bg_def_xpm);  
 
   gc2 = gdk_gc_new(mask);
@@ -158,20 +149,16 @@ static void dspecgr_set_theme() {
   gdk_window_clear(drwarea->window);
 }
 
-static gint dspecgr_move_x;
-static gint dspecgr_move_y;
-
 static gint dspecgr_mousebtnrel_cb(GtkWidget *widget, GdkEventButton *event, gpointer data)
 {
-  if(event->type == GDK_BUTTON_RELEASE) {
-    if(event->button == 1) {
-      if((event->x > (WINWIDTH - TOP_BORDER)) &&
+  if (event->type == GDK_BUTTON_RELEASE) {
+    if (event->button == 1) {
+      if (dock_is_moving(window)) {
+	dock_move_release(window);
+      }
+      if ((event->x > (WINWIDTH - TOP_BORDER)) &&
 	 (event->y < TOP_BORDER)) { //topright corner
 	dspecgr_vp.disable_plugin(&dspecgr_vp);
-      }
-      if(dspecgr_window_motion) {
-	gdk_pointer_ungrab(GDK_CURRENT_TIME);
-	dspecgr_window_motion = FALSE;
       }
     }
   }
@@ -181,33 +168,23 @@ static gint dspecgr_mousebtnrel_cb(GtkWidget *widget, GdkEventButton *event, gpo
 
 static gint dspecgr_mousemove_cb(GtkWidget *widget, GdkEventMotion *event, gpointer data)
 {
-  if(dspecgr_window_motion) {
-    GdkModifierType modmask;
-    gint mouse_x, mouse_y;
-
-    gdk_window_get_pointer(NULL, &mouse_x, &mouse_y, &modmask);
-    gdk_window_move(window->window,  mouse_x - dspecgr_move_x, mouse_y - dspecgr_move_y);
+  if (dock_is_moving(window)) {
+    dock_move_motion(window, event);
   }
+
   return TRUE;
 }
 
 static gint dspecgr_mousebtn_cb(GtkWidget *widget, GdkEventButton *event, gpointer data)
 {
-
-  dspecgr_move_x = event->x;
-  dspecgr_move_y = event->y;
-
-  if(event->type == GDK_BUTTON_PRESS) {
-    if((event->button == 1) &&
+  if (event->type == GDK_BUTTON_PRESS) {
+    if ((event->button == 1) &&
        (event->x < (WINWIDTH - TOP_BORDER)) &&
        (event->y <= TOP_BORDER)) { //topright corner
-      gdk_window_raise(window->window);
-      gdk_pointer_grab(window->window, FALSE, GDK_BUTTON_MOTION_MASK | GDK_BUTTON_RELEASE_MASK,
-		       GDK_NONE, GDK_NONE, GDK_CURRENT_TIME);
-      dspecgr_window_motion = TRUE;
+      dock_move_press(dock_window_list, window, event, FALSE);
     }
     
-    if(event->button == 3) {
+    if (event->button == 3) {
       gtk_menu_popup ((GtkMenu *)data, NULL, NULL, NULL, NULL, 
                             event->button, event->time);
     }
@@ -263,7 +240,7 @@ static void dspecgr_init (void) {
   dspecgr_set_icon(window);
   gdk_window_set_decorations(window->window, 0);
 
-  if(Cfg.pos_x != -1)
+  if (Cfg.pos_x != -1)
     gtk_widget_set_uposition (window, Cfg.pos_x, Cfg.pos_y);
 
   menu = dspecgr_create_menu();
@@ -297,19 +274,15 @@ static void dspecgr_init (void) {
 
   dspecgr_set_theme();
   gtk_widget_show(window);
+
+  if (!g_list_find(dock_window_list, window)) {
+    dock_add_window(dock_window_list, window);
+  }
 }
 
 static void dspecgr_config_read () {
   ConfigFile *cfg;
-  gchar *filename, *themefile;
-
-  /* defaults */
-  Cfg.amp_gain = FALSE;
-  Cfg.freq_nonlinj = FALSE;
-  Cfg.db_scale_factor = 20;
-  Cfg.pos_x = -1;
-  Cfg.pos_y = -1;
-  Cfg.skin_xpm = "";
+  gchar *filename, *themefile = NULL;
 
   filename = g_strconcat(g_get_home_dir(), "/.xmms/config", NULL);
   if ((cfg = xmms_cfg_open_file(filename)) != NULL) {
@@ -352,6 +325,11 @@ static void dspecgr_config_write () {
 
 static void dspecgr_cleanup(void) {
   dspecgr_config_write();
+
+  if (g_list_find(dock_window_list, window)) {
+    g_list_remove(dock_window_list, window); 
+  }
+
   if (win_about) gtk_widget_destroy(win_about);
   if (win_conf)  gtk_widget_destroy(win_conf);
   if (window)    gtk_widget_destroy(window);
@@ -364,14 +342,6 @@ static void dspecgr_cleanup(void) {
   if (hfdata[0]) free(hfdata[0]);
   if (hfdata[1]) free(hfdata[1]);
   if (Cfg.skin_xpm) g_free(Cfg.skin_xpm);
-}
-
-static void dspecgr_playback_start(void) {
-  /* void code */
-}
-
-static void dspecgr_playback_stop(void) {
-  /* more void code*/
 }
 
 static void dspecgr_render_freq(gint16 data[2][256]) {
@@ -569,8 +539,8 @@ static void dspecgr_about(void) {
 
   lbl_author = gtk_label_new ("plugin for XMMS\n"
 			      "made by Joakim Elofsson\n"
-			      "joakime@hem.passagen.se\n"
-			      "   http://hem.passagen.se/joakime/index.html   ");
+			      "joakim.elofsson@home.se\n"
+			      "   http://www.shell.linux.se/bm/   ");
   gtk_container_add (GTK_CONTAINER (frm), lbl_author);
   gtk_widget_show (lbl_author);
 
@@ -725,7 +695,8 @@ static void dspecgr_config (void) {
   gtk_widget_show (etry_theme);
   gtk_box_pack_start (GTK_BOX (hb_theme), etry_theme, TRUE, TRUE, 0);
   gtk_entry_set_editable (GTK_ENTRY (etry_theme), TRUE);
-  gtk_entry_set_text((GtkEntry *) etry_theme, Cfg.skin_xpm);
+  gtk_entry_set_text((GtkEntry *) etry_theme, 
+		     Cfg.skin_xpm ? Cfg.skin_xpm : THEME_DEFAULT_STR);
 
   btn_theme = gtk_button_new_with_label ("Choose Theme");
   gtk_widget_show (btn_theme);
@@ -808,8 +779,6 @@ void create_fileselection (void) {
 		      NULL);
 }
 
-static GtkWidget *item_follow;
-
 void on_item_close_activate(GtkMenuItem *menuitem, gpointer data)
 {
   dspecgr_vp.disable_plugin(&dspecgr_vp);
@@ -824,15 +793,6 @@ void on_item_conf_activate(GtkMenuItem *menuitem, gpointer data)
 {
   dspecgr_config();
 }
-
-void on_item_follow_activate(GtkCheckMenuItem *item, gpointer data)
-{
-  if (!g_list_find(dock_window_list, window)) {
-    dock_add_window(dock_window_list, window);
-    gtk_widget_hide(item_follow);
-  }
-}
-
 
 GtkWidget* dspecgr_create_menu(void)
 {
@@ -856,10 +816,6 @@ GtkWidget* dspecgr_create_menu(void)
   gtk_container_add (GTK_CONTAINER(menu), sep);
   gtk_widget_set_sensitive(sep, FALSE);
 
-  item_follow = gtk_menu_item_new_with_label("Add to XMMS window dock list");
-  gtk_widget_show(item_follow);
-  gtk_container_add(GTK_CONTAINER(menu), item_follow);
-
   item_conf = gtk_menu_item_new_with_label("Config");
   gtk_widget_show(item_conf);
   gtk_container_add (GTK_CONTAINER(menu), item_conf);
@@ -876,9 +832,6 @@ GtkWidget* dspecgr_create_menu(void)
 
   gtk_signal_connect(GTK_OBJECT(item_conf), "activate",
 		     GTK_SIGNAL_FUNC(on_item_conf_activate), NULL);
-
-  gtk_signal_connect(GTK_OBJECT(item_follow), "activate",
-		     GTK_SIGNAL_FUNC(on_item_follow_activate), NULL);
 
   return menu;
 }
