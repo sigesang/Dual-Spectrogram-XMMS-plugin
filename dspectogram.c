@@ -678,7 +678,7 @@ static void dspecgr_config (void) {
   gtk_widget_show (btn_snapmainwin);
   gtk_box_pack_start (GTK_BOX (vb_miscwin), btn_snapmainwin, FALSE, FALSE, 0);
 
-  ckbtn_rcoords = gtk_check_button_new_with_label ("Remember possision");
+  ckbtn_rcoords = gtk_check_button_new_with_label ("Remember position");
   gtk_toggle_button_set_active((GtkToggleButton *) ckbtn_rcoords, (Cfg.pos_x!=-1)?TRUE:FALSE);
   gtk_widget_show (ckbtn_rcoords);
   gtk_box_pack_start (GTK_BOX (vb_miscwin), ckbtn_rcoords, FALSE, FALSE, 0);
