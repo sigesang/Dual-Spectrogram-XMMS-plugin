@@ -1,0 +1,14 @@
+1.1pre1 -> 1.2
+now uses a default themedirectory
+some small code tweaks
+one new skin included
+added miniicon (for taskbar etc)
+1.0.1 -> 1.1pre1
+added menus, movearoundhanling
+some gtkwidget cleanup
+graphbackground now comes from skin
+NOTE! the old skinns should be replaced with new ones, if using them 
+
+1.0 -> 1.0.1
+db range was wrong, 
+now with better range and some fixes
