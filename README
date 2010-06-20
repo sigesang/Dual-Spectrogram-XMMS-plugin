@@ -1,13 +1,11 @@
 Dual Spectrogram - plugin for XMMS
-by Joakim 'basemetal' Elofsson 2001
+by Joakim Elofsson, joakim dot elofsson at gmail dot com
 
 REQUIERMENTS:
 	working XMMS 1.2.x <http://www.xmms.org>
 	(X, gtk+, pthreads... etc)
 
 BUILD:
-	included binary was build on a linux-ix86-glibc2.2.5 system
-	
 	to build, do:
 	make
 
@@ -19,13 +17,10 @@ INSTALL:
 	will install plugin in xmms plugindirs and themes in
 	themedir (in xmms datadir)
 	
-	(if you have no root access, it's probably possible installing this
-	in your ~/.xmms dir, if so.. you must edit XMMS_DATADIR &
-	INSTALL-DIR in Makefile, and recompile)
+	(if you have no root access, make user-install)
 
 USE:
 	activate it in XMMS Vis-plugin-config
-        ...
 	
   skins
    are 277x68 sized xpm the first 275 columns is the background
@@ -40,9 +35,5 @@ A thanks to synap<synap@area101.penguin.nl> for suggesting
 I should make a plugin like this
 
 --------------------------------------------------------------
-  comments, feedback etc: joakim.elofsson@home.se
-  screenshot, download etc will come up here:
-                   http://www.shell.linux.se/bm/
-
-/ Joakim 'basemetal' Elofsson
+/ Joakim Elofsson
 
