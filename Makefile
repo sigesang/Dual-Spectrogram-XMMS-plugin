@@ -1,17 +1,14 @@
-# Change paths & OPT if necessary
 
 CC = gcc
-OPT = -m486 -O2
-#OPT = -mpentium -O6
-#OPT = -mcpu=k6 -march=k6 -O6
+OPT = -O2
 CFLAGS = $(OPT) -Wall -fPIC `gtk-config --cflags gthread`
-LFLAGS = -shared -fPIC -L/usr/local/lib
+LFLAGS = -shared -fPIC
 NAME = dspectogram
 OBJ = $(NAME).o
-INSTALL-DIR=`xmms-config --visualization-plugin-dir`
+INSTALL_DIR=`xmms-config --visualization-plugin-dir`
 XMMS_DATADIR=`xmms-config --data-dir`
-#INSTALL-DIR=$(HOME)/.xmms/Plugins
-#XMMS_DATADIR=$(HOME)/.xmms
+USER_INSTALL_DIR=$(HOME)/.xmms/Plugins
+USER_XMMS_DATADIR=$(HOME)/.xmms
 THEME_SUBDIR=$(NAME)_themes
 XMMS_DATADIR_FLAGS=-DTHEMEDIR=\"$(XMMS_DATADIR)/$(THEME_SUBDIR)/\"
 VER=`(grep 'define.*THIS_IS' $(NAME).c | tr -d [:alpha:][:blank:]\"\#_[=\n=] )`
@@ -31,9 +28,14 @@ distclean:
 	rm -f *.o core *~
 
 install:
-	install lib$(NAME).so $(INSTALL-DIR) 
+	install lib$(NAME).so $(INSTALL_DIR) 
 	mkdir -p $(XMMS_DATADIR)/$(THEME_SUBDIR)
 	install bg_*.xpm $(XMMS_DATADIR)/$(THEME_SUBDIR)
+
+user-install:
+	install lib$(NAME).so $(USER_INSTALL_DIR) 
+	mkdir -p $(USER_XMMS_DATADIR)/$(THEME_SUBDIR)
+	install bg_*.xpm $(USER_XMMS_DATADIR)/$(THEME_SUBDIR)
 
 release: lib$(NAME).so
 	strip lib$(NAME).so
