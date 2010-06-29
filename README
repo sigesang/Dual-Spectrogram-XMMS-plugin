@@ -2,8 +2,8 @@ Dual Spectrogram - plugin for XMMS
 by Joakim Elofsson, joakim dot elofsson at gmail dot com
 
 REQUIERMENTS:
-	working XMMS 1.2.x <http://www.xmms.org>
-	(X, gtk+, pthreads... etc)
+	working XMMS 1.2.x <http://legacy.xmms2.org>
+	(X, gtk+ 1.2, pthreads... etc)
 
 BUILD:
 	to build, do:
@@ -31,8 +31,7 @@ possibel TODOs
   ...
 
 A thanks to Remi Cohen-Scali for some ideas & code.
-A thanks to synap<synap@area101.penguin.nl> for suggesting
-I should make a plugin like this
+A thanks to synap<synap@area101.penguin.nl> for suggesting I should make a plugin like this
 
 --------------------------------------------------------------
 / Joakim Elofsson
