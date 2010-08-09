@@ -14,15 +14,16 @@
 #include <xmms/plugin.h>
 #include <xmms/configfile.h>
 #include <unistd.h>
+#include <string.h>
 
-#include "bg-def.xpm"
-#include "dspectogram_mini.xpm"
+#include "bg_xmms.xpm"
+#include "dspectrogram_mini.xpm"
 
-#define THIS_IS "Dual Spectogram 1.2.1"
+#define THIS_IS "Dual Spectrogram 1.2.1"
 
 #define NUM_BANDS 48
 
-#define CONFIG_SECTION "Dual Spectogram"
+#define CONFIG_SECTION "Dual Spectrogram"
 
 /* THEMEDIR set at maketime */
 #define THEME_DEFAULT_STR ""
@@ -203,7 +204,7 @@ static void dspecgr_set_icon (GtkWidget *win)
   if (!icon)
     icon = gdk_pixmap_create_from_xpm_d (win->window, &mask, 
 					 &win->style->bg[GTK_STATE_NORMAL], 
-					 dspectogram_mini_xpm);
+					 dspectrogram_mini_xpm);
   data[0] = GDK_WINDOW_XWINDOW(icon);
   data[1] = GDK_WINDOW_XWINDOW(mask);
   

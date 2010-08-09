@@ -1,5 +1,5 @@
 /* XPM */
-static char * dspectogram_mini_xpm[] = {
+static char * dspectrogram_mini_xpm[] = {
 "16 16 87 1",
 " 	c None",
 ".	c #5B5B5B",
